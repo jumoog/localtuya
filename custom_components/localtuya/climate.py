@@ -94,6 +94,11 @@ HVAC_MODE_SETS = {
         HVACMode.COOL: "cold",
         HVACMode.AUTO: "auto",
     },
+    "Cool/Dyr/Fan": {
+        HVACMode.COOL: "Cool",
+        HVACMode.DRY: "Dyr",
+        HVACMode.FAN_ONLY: "Fan",
+    },
     "Cold/Dehumidify/Hot": {
         HVACMode.HEAT: "hot",
         HVACMode.DRY: "dehumidify",
@@ -133,13 +138,22 @@ HVAC_FAN_MODE_SETS = {
         FAN_MEDIUM: "middle",
         FAN_HIGH: "high",
         FAN_TOP: "strong",
-    }
+    },
+    "Low/Mid/High": {
+        FAN_LOW: "Low",
+        FAN_MEDIUM: "Mid",
+        FAN_HIGH: "High",
+    },
 }
 HVAC_SWING_MODE_SETS = {
     "True/False": {
         SWING_ON: True,
         SWING_OFF: False,
-    }
+    },
+    "ON/OFF": {
+        SWING_ON: "ON",
+        SWING_OFF: "OFF",
+    },
 }
 PRESET_SETS = {
     "Manual/Holiday/Program": {
@@ -182,6 +196,8 @@ def flow_schema(dps):
         vol.Optional(CONF_HVAC_MODE_SET): vol.In(list(HVAC_MODE_SETS.keys())),
         vol.Optional(CONF_HVAC_FAN_MODE_DP): vol.In(dps),
         vol.Optional(CONF_HVAC_FAN_MODE_SET): vol.In(list(HVAC_FAN_MODE_SETS.keys())),
+        vol.Optional(CONF_HVAC_SWING_MODE_DP): vol.In(dps),
+        vol.Optional(CONF_HVAC_SWING_MODE_SET): vol.In(list(HVAC_SWING_MODE_SETS.keys())),
         vol.Optional(CONF_HVAC_ACTION_DP): vol.In(dps),
         vol.Optional(CONF_HVAC_ACTION_SET): vol.In(list(HVAC_ACTION_SETS.keys())),
         vol.Optional(CONF_ECO_DP): vol.In(dps),
@@ -241,7 +257,12 @@ class LocaltuyaClimate(LocalTuyaEntity, ClimateEntity):
             self._config.get(CONF_HVAC_ACTION_SET), {}
         )
         self._conf_eco_dp = self._config.get(CONF_ECO_DP)
-        self._conf_eco_value = self._config.get(CONF_ECO_VALUE, "ECO")
+        _eco_val = self._config.get(CONF_ECO_VALUE, "ECO")
+        if _eco_val == "True":
+            _eco_val = True
+        elif _eco_val == "False":
+            _eco_val = False
+        self._conf_eco_value = _eco_val
         self._has_presets = self.has_config(CONF_ECO_DP) or self.has_config(
             CONF_PRESET_DP
         )
@@ -432,6 +453,11 @@ class LocaltuyaClimate(LocalTuyaEntity, ClimateEntity):
         """Set new target preset mode."""
         if preset_mode == PRESET_ECO:
             await self._device.set_dp(self._conf_eco_value, self._conf_eco_dp)
+            return
+        if preset_mode == PRESET_NONE and self.has_config(CONF_ECO_DP) and not self.has_config(CONF_PRESET_DP):
+            # Turn off eco when only eco DP is configured
+            off_value = not self._conf_eco_value if isinstance(self._conf_eco_value, bool) else ""
+            await self._device.set_dp(off_value, self._conf_eco_dp)
             return
         await self._device.set_dp(
             self._conf_preset_set[preset_mode], self._conf_preset_dp

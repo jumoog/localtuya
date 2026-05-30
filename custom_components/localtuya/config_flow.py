@@ -92,7 +92,7 @@ DEVICE_SCHEMA = vol.Schema(
         vol.Required(CONF_DEVICE_ID): cv.string,
         vol.Required(CONF_LOCAL_KEY): cv.string,
         vol.Required(CONF_PROTOCOL_VERSION, default="3.3"): vol.In(
-            ["3.1", "3.2", "3.3", "3.4"]
+            ["3.1", "3.2", "3.3", "3.4", "3.5"]
         ),
         vol.Required(CONF_ENABLE_DEBUG, default=False): bool,
         vol.Optional(CONF_SCAN_INTERVAL): int,
@@ -138,7 +138,7 @@ def options_schema(entities):
             vol.Required(CONF_HOST): cv.string,
             vol.Required(CONF_LOCAL_KEY): cv.string,
             vol.Required(CONF_PROTOCOL_VERSION, default="3.3"): vol.In(
-                ["3.1", "3.2", "3.3", "3.4"]
+                ["3.1", "3.2", "3.3", "3.4", "3.5"]
             ),
             vol.Required(CONF_ENABLE_DEBUG, default=False): bool,
             vol.Optional(CONF_SCAN_INTERVAL): int,
@@ -263,7 +263,7 @@ async def validate_input(hass: core.HomeAssistant, data):
                 _LOGGER.debug(
                     "Initial state update failed (%s), trying reset command", ex
                 )
-                if len(reset_ids) > 0:
+                if reset_ids:
                     await interface.reset(reset_ids)
                     detected_dps = await interface.detect_available_dps()
             except Exception as ex:
